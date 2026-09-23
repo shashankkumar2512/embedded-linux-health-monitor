@@ -1,0 +1,10 @@
+{
+    "cpu_threshold_percent": 80,
+    "memory_threshold_percent": 80,
+    "disk_threshold_percent": 85,
+    "temperature_threshold_celsius": 75,
+    "check_interval_seconds": 5,
+    "monitored_services": [
+        "cron.service"
+    ]
+}

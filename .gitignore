@@ -1,0 +1,17 @@
+# Build files
+build/
+
+# Runtime logs
+logs/
+
+# Executables
+*.exe
+*.out
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
