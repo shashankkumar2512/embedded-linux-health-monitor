@@ -1,90 +1,68 @@
 # Embedded Linux Device Health Monitor & Auto-Recovery Agent
 
-A **C++17-based Linux system health monitoring and automatic recovery agent** that continuously monitors device health, detects abnormal conditions, monitors critical services, and automatically performs recovery actions.
+> **Monitor. Detect. Recover. Keep Linux running.**
 
-The project is designed for Linux-based systems and demonstrates practical use of **Linux system interfaces, C++, systemd, process monitoring, service recovery, configuration management, logging, and automated testing**.
+A **C++17-based Linux system health monitoring and automatic recovery agent** built to continuously observe system health, detect abnormal conditions, monitor critical services, and automatically recover from failures.
 
----
-
-## 🚀 Features
-
-* CPU utilization monitoring
-* RAM/memory utilization monitoring
-* Disk space monitoring
-* CPU/system temperature monitoring
-* Network availability monitoring
-* Critical Linux service monitoring
-* Configurable health thresholds
-* JSON-based configuration
-* Structured timestamped logging
-* Automatic recovery of failed services
-* systemd integration
-* Automatic recovery of the monitoring process
-* Failure simulation
-* Unit testing with CTest
-* CMake-based build system
+Designed for Linux-based systems, the project combines **Linux system interfaces, C++, systemd, process supervision, service recovery, configuration management, structured logging, and automated testing** into a single lightweight monitoring agent.
 
 ---
 
-## 🏗️ System Architecture
+## 🚀 What It Does
+
+The agent continuously watches the health of a Linux system and reacts when something goes wrong.
+
+| Monitor         | What It Checks            |
+| --------------- | ------------------------- |
+| 🖥️ CPU         | CPU utilization           |
+| 🧠 Memory       | RAM utilization           |
+| 💾 Disk         | Filesystem usage          |
+| 🌡️ Temperature | Available thermal sensors |
+| 🌐 Network      | Network availability      |
+| ⚙️ Services     | Critical Linux services   |
+
+When a monitored service fails, the agent can detect the failure, attempt recovery, and record the event.
+
+---
+
+## 🧠 System Overview
 
 ```text
-                    Linux Operating System
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-        /proc              /sys           systemctl
-          │                 │                 │
-     ┌────┴────┐       ┌────┴────┐           │
-     │         │       │         │           │
-   CPU      Memory  Temperature Network    Services
-     │         │       │         │           │
-     └─────────┴───────┴─────────┴───────────┘
-                            │
-                            ▼
-                 Health Monitor Agent
-                            │
-              ┌─────────────┴─────────────┐
-              │                           │
-       Health Evaluation            Service Check
-              │                           │
-              ▼                           ▼
-           Logger                 Recovery Action
-                                          │
-                                          ▼
-                                  systemctl restart
-                                          │
-                                          ▼
-                                   Service Restored
-
-                       systemd
-                          │
-                          ▼
-                 Process Supervision
-                          │
-                  Restart on Failure
+                    ┌──────────────────────────┐
+                    │     Linux Operating      │
+                    │         System           │
+                    └────────────┬─────────────┘
+                                 │
+             ┌───────────────────┼───────────────────┐
+             ▼                   ▼                   ▼
+          /proc                 /sys             systemctl
+             │                   │                   │
+       ┌─────┴─────┐       ┌─────┴─────┐       ┌───┴────┐
+       │ CPU       │       │Temperature│       │Services│
+       │ Memory    │       │ Network   │       └───┬────┘
+       └─────┬─────┘       └─────┬─────┘           │
+             └─────────────┬─────┴─────────────────┘
+                           ▼
+              ┌─────────────────────────┐
+              │    Health Monitor Agent │
+              └────────────┬────────────┘
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+        Health Evaluation       Service Check
+                │                     │
+                ▼                     ▼
+             Logging             Recovery
+                                      │
+                                      ▼
+                              systemctl restart
 ```
 
 ---
 
-## 📊 Monitoring Components
+## 🔄 Monitoring Cycle
 
-| Component           | Data Source                              | Purpose                                   |
-| ------------------- | ---------------------------------------- | ----------------------------------------- |
-| CPU Monitor         | `/proc/stat`                             | Calculates CPU utilization                |
-| Memory Monitor      | `/proc/meminfo`                          | Calculates memory utilization             |
-| Disk Monitor        | `statvfs()`                              | Calculates filesystem usage               |
-| Temperature Monitor | `/sys/class/thermal`, `/sys/class/hwmon` | Reads available temperature sensors       |
-| Network Monitor     | `/sys/class/net`                         | Checks network availability               |
-| Service Monitor     | `systemctl`                              | Checks and recovers Linux services        |
-| Logger              | File + system output                     | Records system health and recovery events |
-| Config Manager      | JSON configuration                       | Loads thresholds and monitoring settings  |
-
----
-
-## 🔄 How It Works
-
-The agent continuously performs the following cycle:
+The agent follows a continuous monitoring loop:
 
 ```text
 Start
@@ -102,92 +80,81 @@ Collect System Metrics
   └── Network
   │
   ▼
-Check Configured Thresholds
+Evaluate Thresholds
   │
   ▼
 Check Critical Services
   │
-  ├── Service Active ───────► Continue Monitoring
+  ├── Active ───────────────► Continue
   │
-  └── Service Inactive
-             │
-             ▼
-       Restart Service
-             │
-             ▼
-        Log Recovery
-             │
-             ▼
-       Wait for Interval
-             │
-             └──────────────► Repeat
+  └── Inactive
+          │
+          ▼
+     Restart Service
+          │
+          ▼
+      Log Recovery
+          │
+          ▼
+     Wait for Interval
+          │
+          └──────────────► Repeat
 ```
+
+The current configuration checks the system every **5 seconds**.
 
 ---
 
-## 🛡️ Automatic Recovery
+## 🛡️ Two-Layer Recovery
 
-The project provides **two levels of recovery**.
+### Service Recovery
 
-### 1. Monitored Service Recovery
-
-When a configured Linux service becomes inactive, the application detects the failure and attempts to restart it.
+When a monitored Linux service becomes inactive:
 
 ```text
 Service Failure
-      │
-      ▼
+      ↓
 ServiceMonitor
-      │
-      ▼
+      ↓
 systemctl is-active
-      │
-      ▼
+      ↓
 Service Inactive
-      │
-      ▼
-systemctl restart <service>
-      │
-      ▼
+      ↓
+systemctl restart
+      ↓
 Service Active
 ```
 
-### 2. Health Monitor Process Recovery
+### Monitor Process Recovery
 
-The health monitor itself is supervised by systemd.
-
-The service uses:
+The monitor itself is supervised by **systemd**:
 
 ```ini
 Restart=always
 RestartSec=5
 ```
 
-Therefore, if the monitoring process terminates unexpectedly:
+If the monitoring process terminates unexpectedly, systemd automatically starts it again.
+
+This creates a simple recovery chain:
 
 ```text
-Health Monitor Process
-        │
-        ▼
-   Process Failure
-        │
-        ▼
-      systemd
-        │
-        ▼
- Restart after 5 seconds
-        │
-        ▼
-Health Monitor Running
+System Problem
+      ↓
+Detection
+      ↓
+Recovery Action
+      ↓
+Logging
+      ↓
+Continued Monitoring
 ```
-
-This provides an additional layer of reliability.
 
 ---
 
 ## ⚙️ Configuration
 
-Configuration is stored in:
+Monitoring thresholds are kept outside the application code:
 
 ```text
 config/health_monitor.json
@@ -208,16 +175,7 @@ Example:
 }
 ```
 
-### Configuration Parameters
-
-| Parameter                       | Description                   |
-| ------------------------------- | ----------------------------- |
-| `cpu_threshold_percent`         | CPU warning threshold         |
-| `memory_threshold_percent`      | Memory warning threshold      |
-| `disk_threshold_percent`        | Disk usage warning threshold  |
-| `temperature_threshold_celsius` | Temperature warning threshold |
-| `check_interval_seconds`        | Monitoring interval           |
-| `monitored_services`            | Linux services to monitor     |
+This keeps system-specific settings separate from the monitoring logic.
 
 ---
 
@@ -225,10 +183,6 @@ Example:
 
 ```text
 embedded-linux-health-monitor/
-│
-├── CMakeLists.txt
-├── README.md
-├── .gitignore
 │
 ├── config/
 │   └── health_monitor.json
@@ -275,99 +229,63 @@ embedded-linux-health-monitor/
 
 ---
 
-## 🧰 Technologies Used
+## 🧰 Built With
 
-* **C++17**
-* **CMake**
-* **Linux**
-* **systemd**
-* **nlohmann/json**
-* **CTest**
-* Linux `/proc` filesystem
-* Linux `/sys` filesystem
+**C++17** · **CMake** · **Linux** · **systemd** · **nlohmann/json** · **CTest**
+
+Also uses native Linux interfaces including:
+
+* `/proc`
+* `/sys`
 * Linux filesystem APIs
-* Git/GitHub
-
----
-
-## 📋 Requirements
-
-### Software
-
-* Linux-based operating system
-* C++17-compatible compiler
-* CMake
-* nlohmann-json
-* systemd
-
-### Ubuntu/Debian
-
-Install the required JSON library:
-
-```bash
-sudo apt update
-sudo apt install nlohmann-json3-dev
-```
 
 ---
 
 ## 🔨 Build
 
-Clone the repository:
-
 ```bash
 git clone https://github.com/shashankkumar2512/embedded-linux-health-monitor.git
 cd embedded-linux-health-monitor
-```
 
-Configure the project:
-
-```bash
 cmake -S . -B build
-```
-
-Build:
-
-```bash
 cmake --build build -j$(nproc)
 ```
 
 ---
 
-## 🧪 Run Tests
+## 🧪 Testing
 
-Execute the complete test suite:
+Run the complete test suite:
 
 ```bash
 ctest --test-dir build --output-on-failure
 ```
 
-Current test result:
+### Current Result
 
 ```text
-100% tests passed, 0 tests failed out of 4
+4/4 tests passed
+0 failures
 ```
 
-Tests included:
+Tests cover:
 
 ```text
-CPU_Monitor_Test
-Memory_Monitor_Test
-Config_Manager_Test
-Service_Monitor_Test
+CPU Monitor
+Memory Monitor
+Configuration Manager
+Service Monitor
 ```
 
 ---
 
-## ▶️ Run the Monitor
-
-Run the application manually:
+## ▶️ Run
 
 ```bash
 ./build/device-health-monitor config/health_monitor.json
 ```
 
-Example output:
+Example:
 
 ```text
 [INFO] Embedded Linux Health Monitor starting
@@ -377,13 +295,11 @@ Example output:
 [INFO] Service cron.service is active
 ```
 
-The monitor checks the system every **5 seconds** according to the current configuration.
-
 ---
 
 ## 📝 Logging
 
-Runtime logs are written to:
+Runtime events are written to:
 
 ```text
 logs/health_monitor.log
@@ -397,28 +313,26 @@ Example:
 [2026-09-23 15:43:33] [INFO] Service cron.service is active
 ```
 
-The `logs/` directory is excluded from Git using `.gitignore`.
-
 ---
 
 ## ⚡ systemd Deployment
 
-The project includes a systemd service:
-
-```text
-systemd/device-health-monitor.service
-```
-
-Install it using:
+Install the service:
 
 ```bash
 sudo ./scripts/install.sh
 ```
 
-Check the service:
+Check its status:
 
 ```bash
 sudo systemctl status device-health-monitor
+```
+
+Enable automatic startup:
+
+```bash
+sudo systemctl enable device-health-monitor
 ```
 
 Expected state:
@@ -427,29 +341,11 @@ Expected state:
 Active: active (running)
 ```
 
-Enable it to start automatically:
-
-```bash
-sudo systemctl enable device-health-monitor
-```
-
 ---
 
-## 🧯 Failure Simulation
+## 🧯 Recovery Testing
 
-The project contains a failure simulation script:
-
-```bash
-./scripts/simulate_failure.sh
-```
-
-For controlled service recovery testing, the project uses:
-
-```text
-health-monitor-test.service
-```
-
-The test service can safely be stopped:
+A dedicated test service is provided for controlled recovery testing:
 
 ```bash
 sudo systemctl stop health-monitor-test.service
@@ -469,143 +365,112 @@ Expected:
 active
 ```
 
-> For testing, use the dedicated test service instead of intentionally stopping a production-critical Linux service.
+> **Testing note:** Use the dedicated test service rather than intentionally stopping a production-critical service.
 
 ---
 
-## 🔍 Verified Recovery Tests
+## ✅ Verification
 
-### Health Monitor Process Recovery
+The project has verified both recovery layers.
 
-The monitor process was intentionally terminated.
-
-systemd automatically restarted it.
-
-Verified using:
-
-```bash
-systemctl show device-health-monitor -p MainPID -p NRestarts
-```
-
-Observed:
+### Monitor Process
 
 ```text
 MainPID=18787
 NRestarts=1
 ```
 
-This confirms that systemd successfully restarted the monitoring process.
+This confirms that systemd restarted the monitoring process after termination.
 
-### Service Recovery
-
-The test service was intentionally stopped:
-
-```bash
-sudo systemctl stop health-monitor-test.service
-```
-
-It was subsequently detected and restarted by the health monitor.
-
-Verification:
-
-```bash
-systemctl is-active health-monitor-test.service
-```
-
-Result:
+### Monitored Service
 
 ```text
-active
+health-monitor-test.service
+        ↓
+      stopped
+        ↓
+   detected
+        ↓
+     restarted
+        ↓
+      active
 ```
 
 ---
 
-## 🌡️ Temperature on WSL
+## 🌡️ WSL Note
 
-When running inside WSL2, physical thermal sensor interfaces may not be exposed.
+When running under WSL2, physical thermal sensor interfaces may not be available.
 
-Therefore, the monitor may display:
+In that environment:
 
 ```text
 Temperature=N/A
 ```
 
-This is handled gracefully by the application.
-
-On a Linux machine or embedded device exposing thermal or hwmon sensors, the monitor can read the available temperature values.
+This is handled gracefully by the application. On Linux systems exposing thermal or hwmon interfaces, available temperature values can be read normally.
 
 ---
 
-## 🧪 Test Summary
+## 📊 Test Summary
 
-| Test                      | Result |
-| ------------------------- | ------ |
-| Project compilation       | ✅ PASS |
-| CPU monitoring            | ✅ PASS |
-| Memory monitoring         | ✅ PASS |
-| Disk monitoring           | ✅ PASS |
-| Temperature handling      | ✅ PASS |
-| Network monitoring        | ✅ PASS |
-| Configuration loading     | ✅ PASS |
-| Service monitoring        | ✅ PASS |
-| CPU unit test             | ✅ PASS |
-| Memory unit test          | ✅ PASS |
-| Configuration unit test   | ✅ PASS |
-| Service monitor unit test | ✅ PASS |
-| systemd deployment        | ✅ PASS |
-| Process auto-recovery     | ✅ PASS |
-| Service auto-recovery     | ✅ PASS |
+| Area                 | Result |
+| -------------------- | ------ |
+| Compilation          | ✅ PASS |
+| CPU Monitoring       | ✅ PASS |
+| Memory Monitoring    | ✅ PASS |
+| Disk Monitoring      | ✅ PASS |
+| Temperature Handling | ✅ PASS |
+| Network Monitoring   | ✅ PASS |
+| Configuration        | ✅ PASS |
+| Service Monitoring   | ✅ PASS |
+| Unit Tests           | ✅ PASS |
+| systemd Deployment   | ✅ PASS |
+| Process Recovery     | ✅ PASS |
+| Service Recovery     | ✅ PASS |
 
-### Unit Test Result
-
-**4/4 tests passed — 0 failures**
+**4/4 unit tests passed — 0 failures.**
 
 ---
 
-## 📚 Documentation
+## 🔐 Design Principles
 
-Additional documentation is available in:
+The project keeps the monitoring system simple and maintainable:
+
+* Configuration is separated from application logic.
+* Monitored service names receive basic validation.
+* Runtime logs and generated build files stay outside version control.
+* systemd provides process-level supervision.
+* Recovery actions are explicitly logged.
+
+---
+
+## 🚀 Future Direction
+
+The project can later evolve toward:
 
 ```text
-docs/architecture.md
-docs/test-report.md
+Local Monitoring
+      ↓
+Remote Monitoring
+      ↓
+Metrics
+      ↓
+Alerts
+      ↓
+Historical Analysis
 ```
 
----
-
-## 🔐 Design Considerations
-
-The project includes basic validation for monitored service names before constructing `systemctl` commands.
-
-Configuration is kept separate from the application code so thresholds and monitored services can be changed without modifying the monitoring logic.
-
-Runtime-generated build files and logs are excluded from version control.
-
----
-
-## 🚀 Future Improvements
-
-Potential extensions include:
-
-* REST API for remote monitoring
-* Web dashboard
-* Prometheus metrics export
-* Alert notifications
-* Email/Telegram notifications
-* More detailed network monitoring
-* Process-level resource monitoring
-* Hardware-specific temperature sensors
-* Configurable recovery policies
-* Historical health metrics
-* Container/Docker monitoring
-* Cross-platform embedded Linux deployment
+Potential extensions include REST monitoring, a web dashboard, Prometheus metrics, notifications, process-level monitoring, historical metrics, Docker monitoring, and broader embedded Linux deployment.
 
 ---
 
 ## 👨‍💻 Project
 
-**Embedded Linux Device Health Monitor & Auto-Recovery Agent**
+### Embedded Linux Device Health Monitor & Auto-Recovery Agent
 
-Built using **C++17, Linux, CMake, systemd, and nlohmann/json**.
+**C++17 · Linux · CMake · systemd · nlohmann/json**
 
-The project demonstrates continuous system monitoring, fault detection, logging, service recovery, process supervision, and automated testing on Linux.
+A practical Linux systems project focused on one core idea:
+
+> **Detect problems early. Recover automatically. Keep monitoring.**
